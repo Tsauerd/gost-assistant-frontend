@@ -1,0 +1,12 @@
+notepad .gitignore
+```
+
+**Содержимое `.gitignore`:**
+```
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.env
+.netlify/
+node_modules/
