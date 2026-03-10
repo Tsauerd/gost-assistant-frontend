@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ГОСТ-ИИ | Ассистент по бетонам и нормативам</title>
-    
+    <title>ГОСТ-ИИ | Ассистент по нормативным документам</title>
+
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- MathJax для формул -->
     <script>
         window.MathJax = {
@@ -19,10 +19,10 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-    
+
     <!-- Markdown parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
+
     <style>
         * {
             margin: 0;
@@ -61,7 +61,7 @@
 
         /* === SIDEBAR === */
         .sidebar {
-            width: 320px;
+            width: 280px;
             background: var(--bg-card);
             border-right: 1px solid var(--border);
             display: flex;
@@ -101,45 +101,6 @@
 
         .new-chat-btn:hover {
             background: var(--primary-hover);
-        }
-
-        .modes {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .modes-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-
-        .mode-btn {
-            width: 100%;
-            padding: 10px 12px;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            text-align: left;
-            cursor: pointer;
-            margin-bottom: 8px;
-            transition: all 0.2s;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .mode-btn:hover {
-            background: var(--bg-main);
-            border-color: var(--primary);
-        }
-
-        .mode-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
         }
 
         .history {
@@ -499,7 +460,7 @@
             .sidebar {
                 display: none;
             }
-            
+
             .container {
                 flex-direction: column;
             }
@@ -543,22 +504,9 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo">🏗️ ГОСТ-ИИ</div>
-                <div class="tagline">Ассистент по бетонам и нормативам</div>
+                <div class="logo">📋 ГОСТ-ИИ</div>
+                <div class="tagline">Ассистент по нормативным документам</div>
                 <button class="new-chat-btn" onclick="startNewChat()">+ Новый чат</button>
-            </div>
-
-            <div class="modes">
-                <div class="modes-title">Режим работы</div>
-                <button class="mode-btn active" data-mode="search" onclick="switchMode('search')">
-                    🔍 Поиск по ГОСТам
-                </button>
-                <button class="mode-btn" data-mode="complaint" onclick="switchMode('complaint')">
-                    📄 Ответ на претензию
-                </button>
-                <button class="mode-btn" data-mode="technical" onclick="switchMode('technical')">
-                    🔧 Технический вопрос
-                </button>
             </div>
 
             <div class="history">
@@ -570,24 +518,24 @@
         <!-- Main Chat -->
         <main class="main">
             <div class="chat-header">
-                <div class="chat-title" id="modeTitle">Поиск по ГОСТам</div>
-                <div class="chat-subtitle" id="modeSubtitle">Найду точную информацию в нормативных документах</div>
+                <div class="chat-title">ГОСТ/СП Ассистент</div>
+                <div class="chat-subtitle">Задайте вопрос — я сам определю тему и найду ответ в нормативной базе</div>
             </div>
 
             <div class="messages" id="messages">
                 <div class="empty-state">
                     <h2>👋 Здравствуйте!</h2>
-                    <p>Я помогу найти информацию в ГОСТах, подготовить ответ на претензию или решить технический вопрос по бетонам и материалам.</p>
+                    <p>Я помогу найти информацию в ГОСТах и СП, подготовить ответ на претензию или решить технический вопрос по строительным материалам.</p>
                 </div>
             </div>
 
             <div class="input-area">
                 <div class="examples" id="examples"></div>
-                
+
                 <div class="input-wrapper">
                     <div class="input-box">
-                        <textarea 
-                            id="queryInput" 
+                        <textarea
+                            id="queryInput"
                             placeholder="Введите ваш вопрос..."
                             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"
                         ></textarea>
@@ -605,49 +553,23 @@
 
     <script>
         // === CONFIG ===
-        const API_URL = window.location.hostname === 'localhost' 
+        const API_URL = window.location.hostname === 'localhost'
             ? 'http://localhost:8000'
             : '';
 
         // === STATE ===
-        let currentMode = 'search';
-        let currentChatId = null;
+        let sessionId = null;
+        let chatHistory = [];  // [{role, content}]
         let clientId = localStorage.getItem('gost_client_id') || generateClientId();
-        let lastRequestId = null;
 
         // === EXAMPLES ===
-        const EXAMPLES = {
-            search: [
-                'Прочность бетона класса B25',
-                'Требования ГОСТ 26633-2015 к тяжелым бетонам',
-                'Методы испытаний бетона на сжатие'
-            ],
-            complaint: [
-                'Ответ на претензию о несоответствии прочности бетона',
-                'Претензия по качеству цементного раствора',
-                'Не соответствует ГОСТ - как ответить'
-            ],
-            technical: [
-                'Температурный режим твердения бетона',
-                'Влияние влажности на прочность',
-                'Расчет состава бетонной смеси'
-            ]
-        };
-
-        const MODE_INFO = {
-            search: {
-                title: 'Поиск по ГОСТам',
-                subtitle: 'Найду точную информацию в нормативных документах'
-            },
-            complaint: {
-                title: 'Ответ на претензию',
-                subtitle: 'Подготовлю технический ответ с ссылками на нормы'
-            },
-            technical: {
-                title: 'Технический вопрос',
-                subtitle: 'Отвечу на вопросы по материалам, процессам и испытаниям'
-            }
-        };
+        const EXAMPLES = [
+            'Требования ГОСТ к прочности бетонных изделий',
+            'Морозостойкость тротуарной плитки по ГОСТ',
+            'Ответ на претензию о несоответствии качества',
+            'Допустимые отклонения размеров по ГОСТ 13015',
+            'Состав бетонной смеси для вибропрессования',
+        ];
 
         // === INIT ===
         function generateClientId() {
@@ -656,24 +578,10 @@
             return id;
         }
 
-        function switchMode(mode) {
-            currentMode = mode;
-            
-            // Update UI
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mode === mode);
-            });
-            
-            document.getElementById('modeTitle').textContent = MODE_INFO[mode].title;
-            document.getElementById('modeSubtitle').textContent = MODE_INFO[mode].subtitle;
-            
-            renderExamples();
-        }
-
         function renderExamples() {
             const container = document.getElementById('examples');
-            container.innerHTML = EXAMPLES[currentMode]
-                .map(ex => `<button class="example-btn" onclick="useExample('${ex}')">${ex}</button>`)
+            container.innerHTML = EXAMPLES
+                .map(ex => `<button class="example-btn" onclick="useExample('${ex.replace(/'/g, "\\'")}')">${ex}</button>`)
                 .join('');
         }
 
@@ -683,107 +591,121 @@
         }
 
         function startNewChat() {
-            currentChatId = null;
+            sessionId = null;
+            chatHistory = [];
             document.getElementById('messages').innerHTML = `
                 <div class="empty-state">
                     <h2>👋 Здравствуйте!</h2>
-                    <p>Я помогу найти информацию в ГОСТах, подготовить ответ на претензию или решить технический вопрос.</p>
+                    <p>Я помогу найти информацию в ГОСТах и СП, подготовить ответ на претензию или решить технический вопрос по строительным материалам.</p>
                 </div>
             `;
             document.getElementById('queryInput').value = '';
+            renderExamples();
         }
 
         // === MESSAGING ===
         async function sendMessage() {
             const input = document.getElementById('queryInput');
             const query = input.value.trim();
-            
+
             if (!query) return;
 
             const messagesDiv = document.getElementById('messages');
-            
+
             // Clear empty state
             const emptyState = messagesDiv.querySelector('.empty-state');
             if (emptyState) emptyState.remove();
 
-            // Add user message
+            // Add user message to history and UI
+            chatHistory.push({ role: 'user', content: query });
             addMessage('user', query);
             input.value = '';
 
             // Show loading
             const loadingId = addMessage('assistant', '<div class="typing"><span></span><span></span><span></span></div>', true);
             setStatus('Поиск в базе ГОСТов...', true);
-            
+            document.getElementById('sendBtn').disabled = true;
+
             try {
-                const response = await fetch(`${API_URL}/api/chat`, {
+                const response = await fetch(`${API_URL}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        query: query,
-                        task_type: currentMode,
-                        client_id: clientId,
-                        chat_id: currentChatId
+                        messages: chatHistory,
+                        session_id: sessionId,
+                        use_rag: true,
                     })
                 });
 
-                if (!response.ok) throw new Error('Server error');
+                if (!response.ok) throw new Error('Server error ' + response.status);
 
                 const data = await response.json();
-                
+
                 // Remove loading
                 document.getElementById(loadingId).remove();
-                
-                // Add assistant response
-                lastRequestId = data.request_id || data.requestId;
-                addMessage('assistant', data.answer || 'Нет ответа', false, data.context_used, lastRequestId);
-                
+
+                const answerText = data.response || data.answer || 'Нет ответа';
+                const sources = data.sources || [];
+                const msgId = data.message_id || null;
+
+                // Save session
+                if (data.session_id) sessionId = data.session_id;
+
+                // Add assistant reply to history
+                chatHistory.push({ role: 'assistant', content: answerText });
+
+                // Render
+                addMessage('assistant', answerText, false, sources, msgId);
+
                 setStatus('');
 
             } catch (error) {
                 console.error(error);
                 document.getElementById(loadingId).remove();
-                addMessage('assistant', '❌ Ошибка подключения к серверу. Проверьте соединение.', false);
+                addMessage('assistant', '❌ Ошибка подключения к серверу. Проверьте соединение.');
                 setStatus('Ошибка', false);
+            } finally {
+                document.getElementById('sendBtn').disabled = false;
             }
         }
 
-        function addMessage(role, content, isLoading = false, citations = null, requestId = null) {
+        function addMessage(role, content, isLoading = false, sources = null, messageId = null) {
             const messagesDiv = document.getElementById('messages');
-            const messageId = 'msg_' + Date.now();
-            
+            const elemId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
             const avatar = role === 'user' ? 'Вы' : '🤖';
-            
+
             let html = `
-                <div class="message ${role}" id="${messageId}">
+                <div class="message ${role}" id="${elemId}">
                     <div class="avatar">${avatar}</div>
                     <div class="message-content">
                         <div class="message-text">${isLoading ? content : marked.parse(content)}</div>
             `;
 
-            // Citations
-            if (citations && citations.length > 0) {
+            // Citations / sources
+            if (sources && sources.length > 0) {
                 html += `
                     <div class="citations">
                         <div class="citations-title">📚 Источники:</div>
-                        ${citations.map(ctx => `
+                        ${sources.map(src => `
                             <div class="citation">
-                                <div class="citation-doc">${extractGOST(ctx)}</div>
-                                <div class="citation-text">"${extractQuote(ctx)}"</div>
+                                <div class="citation-doc">${src.doc_title || src.title || 'Документ'}</div>
+                                <div class="citation-text">"${(src.snippet || src.text || '').substring(0, 150)}${(src.snippet || src.text || '').length > 150 ? '...' : ''}"</div>
                             </div>
                         `).join('')}
                     </div>
                 `;
             }
 
-            // Rating (only for assistant)
-            if (role === 'assistant' && !isLoading && requestId) {
+            // Rating (only for assistant with messageId)
+            if (role === 'assistant' && !isLoading && messageId) {
                 html += `
                     <div class="rating">
                         <span class="rating-label">Оцените ответ:</span>
-                        <div class="rating-stars">
-                            ${[1,2,3,4,5].map(n => `<span class="star" onclick="rateMessage('${requestId}', ${n})">★</span>`).join('')}
+                        <div class="rating-stars" id="stars_${messageId}">
+                            ${[1,2,3,4,5].map(n => `<span class="star" onclick="rateMessage('${messageId}', ${n}, this)">★</span>`).join('')}
                         </div>
-                        <span class="rating-status" id="rating_${requestId}"></span>
+                        <span class="rating-status" id="rating_${messageId}"></span>
                     </div>
                 `;
             }
@@ -798,42 +720,34 @@
 
             // Render math
             if (window.MathJax && !isLoading) {
-                MathJax.typesetPromise([document.getElementById(messageId)]).catch(console.error);
+                MathJax.typesetPromise([document.getElementById(elemId)]).catch(console.error);
             }
 
-            return messageId;
+            return elemId;
         }
 
-        function extractGOST(text) {
-            const match = text.match(/ГОСТ[РЕ\s]*[\d\.\-]+/);
-            return match ? match[0] : 'ГОСТ';
-        }
+        async function rateMessage(messageId, score, starEl) {
+            const starsContainer = document.getElementById(`stars_${messageId}`);
+            const statusEl = document.getElementById(`rating_${messageId}`);
 
-        function extractQuote(text) {
-            return text.substring(0, 120) + (text.length > 120 ? '...' : '');
-        }
-
-        async function rateMessage(requestId, score) {
-            const statusEl = document.getElementById(`rating_${requestId}`);
-            const stars = event.target.parentElement.querySelectorAll('.star');
-            
-            // Fill stars
-            stars.forEach((star, i) => {
-                star.classList.toggle('filled', i < score);
-            });
+            if (starsContainer) {
+                starsContainer.querySelectorAll('.star').forEach((star, i) => {
+                    star.classList.toggle('filled', i < score);
+                });
+            }
 
             try {
-                const res = await fetch(`${API_URL}/api/rate`, {
+                const res = await fetch(`${API_URL}/feedback`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ request_id: requestId, rating: score })
+                    body: JSON.stringify({ message_id: messageId, rating: score })
                 });
 
                 if (!res.ok) throw new Error();
-                
-                statusEl.textContent = `✓ Оценка ${score}/5 принята`;
+
+                if (statusEl) statusEl.textContent = `✓ Оценка ${score}/5 принята`;
             } catch (error) {
-                statusEl.textContent = '✗ Ошибка';
+                if (statusEl) statusEl.textContent = '✗ Ошибка';
             }
         }
 
