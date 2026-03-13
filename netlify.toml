@@ -2,8 +2,26 @@
   publish = "."
   
 [[redirects]]
-  from = "/api/*"
-  to = "https://gost-assistant-backend.onrender.com/api/:splat"
+  from = "/chat"
+  to = "https://gost-assistant-backend.onrender.com/chat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/feedback"
+  to = "https://gost-assistant-backend.onrender.com/feedback"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/search"
+  to = "https://gost-assistant-backend.onrender.com/search"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://gost-assistant-backend.onrender.com/health"
   status = 200
   force = true
   
